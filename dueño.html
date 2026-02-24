@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel del Dueño</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="banner">
+  <h1 class="logo">Dashboard</h1>
+</div>
+
+<div class="home">
+  <h2>Control de Ventas</h2>
+
+  <button onclick="exportar()">Exportar Excel</button>
+
+  <canvas id="grafico" width="400" height="200"></canvas>
+
+  <div id="stats"></div>
+</div>
+
+<script type="module">
+import { db } from "./firebase.js";
+import { getDocs, collection } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import Chart from "https://cdn.jsdelivr.net/npm/chart.js";
+import * as XLSX from "https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js";
+
+let datosExcel = [];
+
+async function cargar() {
+  const snap = await getDocs(collection(db, "pedidos"));
+
+  let hoy = 0;
+  let semana = 0;
+  let mes = 0;
+
+  const ahora = new Date();
+  const dias = [];
+
+  datosExcel = [];
+
+  snap.forEach(doc => {
+    const p = doc.data();
+    if (p.estado !== "entregado" || !p.createdAt) return;
+
+    const fecha = p.createdAt.toDate();
+    const total = p.items.reduce((a, b) => a + b.precio, 0);
+
+    datosExcel.push({
+      fecha: fecha.toLocaleDateString(),
+      mesa: p.mesa,
+      total
+    });
+
+    dias.push({
+      dia: fecha.toLocaleDateString(),
+      total
+    });
+
+    const diff = (ahora - fecha) / (1000 * 60 * 60 * 24);
+    if (diff <= 1) hoy += total;
+    if (diff <= 7) semana += total;
+    if (diff <= 30) mes += total;
+  });
+
+  document.getElementById("stats").innerHTML = `
+    <div class="card">Ventas hoy: $${hoy}</div>
+    <div class="card">Últimos 7 días: $${semana}</div>
+    <div class="card">Últimos 30 días: $${mes}</div>
+  `;
+
+  new Chart(document.getElementById("grafico"), {
+    type: "bar",
+    data: {
+      labels: dias.map(d => d.dia),
+      datasets: [{
+        label: "Ventas",
+        data: dias.map(d => d.total)
+      }]
+    }
+  });
+}
+
+window.exportar = function() {
+  if (!datosExcel.length) {
+    alert("No hay datos para exportar");
+    return;
+  }
+
+  const ws = XLSX.utils.json_to_sheet(datosExcel);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Ventas");
+  XLSX.writeFile(wb, "ventas.xlsx");
+};
+
+cargar();
+</script>
+
+</body>
+</html>

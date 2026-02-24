@@ -1,0 +1,15 @@
+{
+  "name": "TOTO BAR",
+  "short_name": "TOTO BAR",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "gold",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

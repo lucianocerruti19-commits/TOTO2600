@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<h1>Admin - Gestión</h1>
+
+<h2>Crear Sección</h2>
+<input id="catNombre" placeholder="Nombre sección">
+<button onclick="crearSeccion()">Crear</button>
+
+<h2>Eliminar Sección</h2>
+<input id="catEliminar" placeholder="Nombre sección">
+<button onclick="eliminarSeccion()">Eliminar</button>
+
+<hr>
+
+<h2>Agregar Producto</h2>
+<input id="prodNombre" placeholder="Producto">
+<input id="prodPrecio" type="number" placeholder="Precio">
+<input id="prodCategoria" placeholder="Sección">
+<button onclick="crearProducto()">Agregar</button>
+
+<h2>Eliminar Producto</h2>
+<input id="prodEliminar" placeholder="Nombre producto">
+<button onclick="eliminarProducto()">Eliminar</button>
+
+<script type="module">
+import { db } from "./firebase.js";
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  getDocs,
+  query,
+  where
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+window.crearSeccion = async function() {
+  const nombre = document.getElementById("catNombre").value;
+  if (!nombre) return alert("Nombre requerido");
+  await addDoc(collection(db, "categorias"), { nombre });
+  alert("Sección creada");
+};
+
+window.eliminarSeccion = async function() {
+  const nombre = document.getElementById("catEliminar").value;
+  if (!nombre) return alert("Nombre requerido");
+
+  const snap = await getDocs(query(collection(db, "categorias"), where("nombre", "==", nombre)));
+  snap.forEach(async d => await deleteDoc(d.ref));
+
+  alert("Sección eliminada");
+};
+
+window.crearProducto = async function() {
+  const nombre = document.getElementById("prodNombre").value;
+  const precio = Number(document.getElementById("prodPrecio").value);
+  const categoria = document.getElementById("prodCategoria").value;
+
+  if (!nombre || !categoria) return alert("Completar campos");
+
+  await addDoc(collection(db, "productos"), {
+    nombre,
+    precio,
+    categoria
+  });
+
+  alert("Producto agregado");
+};
+
+window.eliminarProducto = async function() {
+  const nombre = document.getElementById("prodEliminar").value;
+  if (!nombre) return alert("Nombre requerido");
+
+  const snap = await getDocs(query(collection(db, "productos"), where("nombre", "==", nombre)));
+  snap.forEach(async d => await deleteDoc(d.ref));
+
+  alert("Producto eliminado");
+};
+</script>
+
+</body>
+</html>

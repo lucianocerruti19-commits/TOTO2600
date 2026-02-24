@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cliente</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<h1>Menú</h1>
+
+<input id="mesa" type="number" placeholder="Número de mesa">
+<button onclick="cargar()">Cargar menú</button>
+
+<div id="secciones"></div>
+<div id="carrito"></div>
+
+<script type="module">
+import { db } from "./firebase.js";
+import {
+  getDocs,
+  collection,
+  addDoc,
+  serverTimestamp,
+  query,
+  where
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+let carrito = [];
+
+window.cargar = async function() {
+  const cats = await getDocs(collection(db, "categorias"));
+  const div = document.getElementById("secciones");
+  div.innerHTML = "";
+
+  for (const cat of cats.docs) {
+    const nombre = cat.data().nombre;
+    div.innerHTML += `<h2>${nombre}</h2>`;
+
+    const prods = await getDocs(query(collection(db, "productos"), where("categoria", "==", nombre)));
+
+    prods.forEach(doc => {
+      const p = doc.data();
+      div.innerHTML += `
+        <div class="card">
+          ${p.nombre} - $${p.precio}
+          <button onclick="agregar('${p.nombre}', ${p.precio})">Agregar</button>
+        </div>
+      `;
+    });
+  }
+};
+
+window.agregar = function(nombre, precio) {
+  carrito.push({ nombre, precio });
+  render();
+};
+
+function render() {
+  document.getElementById("carrito").innerHTML = `
+    <h2>Carrito</h2>
+    ${carrito.map(p => `<div>${p.nombre} - $${p.precio}</div>`).join("")}
+    <button onclick="enviar()">Enviar pedido</button>
+  `;
+}
+
+window.enviar = async function() {
+  const mesa = document.getElementById("mesa").value;
+  if (!mesa) return alert("Ingresá mesa");
+
+  await addDoc(collection(db, "pedidos"), {
+    mesa,
+    items: carrito,
+    estado: "pendiente",
+    createdAt: serverTimestamp()
+  });
+
+  carrito = [];
+  alert("Pedido enviado");
+};
+</script>
+
+</body>
+</html>

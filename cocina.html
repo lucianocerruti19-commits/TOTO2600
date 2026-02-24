@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Cocina</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<h1>Cocina</h1>
+<button onclick="limpiar()">Limpiar finalizados</button>
+<div id="pedidos"></div>
+
+<script type="module">
+import { db } from "./firebase.js";
+import {
+  onSnapshot,
+  collection,
+  updateDoc,
+  doc,
+  getDocs,
+  deleteDoc
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+onSnapshot(collection(db, "pedidos"), snap => {
+  const div = document.getElementById("pedidos");
+  div.innerHTML = "";
+
+  snap.forEach(d => {
+    const p = d.data();
+    div.innerHTML += `
+      <div class="card">
+        <strong>Mesa: ${p.mesa}</strong>
+        <div>${p.items.map(i => i.nombre).join(", ")}</div>
+        <div>Estado: ${p.estado}</div>
+        <button onclick="cambiar('${d.id}', 'preparando')">Preparando</button>
+        <button onclick="cambiar('${d.id}', 'listo')">Listo</button>
+        <button onclick="cambiar('${d.id}', 'entregado')">Entregado</button>
+      </div>
+    `;
+  });
+});
+
+window.cambiar = async function(id, estado) {
+  await updateDoc(doc(db, "pedidos", id), { estado });
+};
+
+window.limpiar = async function() {
+  const snap = await getDocs(collection(db, "pedidos"));
+  snap.forEach(async d => {
+    const p = d.data();
+    if (p.estado === "entregado") {
+      await deleteDoc(doc(db, "pedidos", d.id));
+    }
+  });
+  alert("Pedidos limpiados");
+};
+</script>
+
+</body>
+</html>
